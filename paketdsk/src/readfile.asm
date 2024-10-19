@@ -21,7 +21,7 @@ start_of_program:
 
     ld b, filename_end - filename
     ld hl, filename
-    ld iy, buffer_2k
+    ld iy, buffer  ; default load address in case the file does not specify one
     call paketdsk_load_file_from_disk
 
 loop:
@@ -62,7 +62,7 @@ end_of_binary:
 ; RAM:
     include "dsk/paketdsk-ram.asm"
 
-buffer_2k:
+buffer:  ; default load address in case the file does not specify one
     ds virtual 2048
 
 

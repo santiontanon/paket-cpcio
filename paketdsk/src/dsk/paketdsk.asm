@@ -107,7 +107,7 @@ paketdsk_setup:
     ld (memory_sector_read_buffer_ptr), hl
     ld hl, AMSDOS_work_RAM_sector_buffer  ; + #02b0
     ld (memory_sector_buffer_ptr), hl
-    ld (memory_sector_buffer_ptr), hl
+    ld (memory_sector_buffer_ptr_2), hl
     ld hl, AMSDOS_work_RAM_directory_record_buffer
     ld (AMSDOS_work_RAM_DPH_drive_a + 8), hl
     ld (AMSDOS_work_RAM_DPH_drive_b + 8), hl

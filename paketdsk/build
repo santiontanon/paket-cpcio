@@ -26,5 +26,5 @@ echo "PAKETDSK v1: used bin: ${USEDBIN}, used ram: ${USEDRAM}, total: ${USED}"
 
 
 # If you have the iDSK tool, you can create a disk with these two files like this:
-# ./iDSK dsktest.dsk -n -i dsktest.bin -e 4000 -c 4000 -t 1
-# ./iDSK dsktest.dsk -i readfile.bin -e 4000 -c 4000 -t 1
+./iDSK dsktest.dsk -n -i dsktest.bin -e 4000 -c 4000 -t 1
+./iDSK dsktest.dsk -i readfile.bin -e 4000 -c 4000 -t 1

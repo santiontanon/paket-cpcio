@@ -15,10 +15,10 @@
 ; - The two main functions are: paketcas_read and paketcas_write.
 
 
-
 PAKETCAS_HALF_A_ZERO_DURATION: equ #53
 PAKETCAS_PRECOMPENSATION: equ #06
 PAKETCAS_SYNCHRONIZATION_BYTE: equ #16
+PAKETCAS_PILOT_SIGNAL_WAIT: equ 10000
 
 
 ; ------------------------------------------------
@@ -27,7 +27,6 @@ paketcas_pulse_state: equ general_buffer  ; keeping track if we need to read a p
 paketcas_period_estimate: equ general_buffer + 1  ; estimated from the pilot tone
 paketcas_last_pulse_period: equ general_buffer + 2
 paketcas_checksum: equ general_buffer + 3
-savegame_data_buffer: equ general_buffer + 5
 
 
 ; ------------------------------------------------
@@ -43,7 +42,7 @@ paketcas_read:
     ld l, a
     push hl  ; push the previous state of the tape motor.
         call paketcas_read_find_sync_byte
-        jr c, paketcas_read_failure_pop
+        jr nc, paketcas_read_failure_pop
         ld bc, #ffff
         ld (paketcas_checksum), bc    
         call paketcas_read_block_internal
@@ -61,7 +60,7 @@ paketcas_read_write_finish:
     ret
 paketcas_read_failure_pop:
     pop hl
-    ccf
+    ; ccf
     ret
 
 
@@ -149,23 +148,22 @@ paketcas_write_block_internal_loop:
 ; input:
 ; - ix: data buffer pointer
 ; output:
-; - c: failure
-; - nc: success
+; - c: success
+; - nc: failure
 paketcas_read_find_sync_byte:
+    ld b, 3  ; 3 retries
+    push bc
     push de
         call paketcas_read_pilot_tone_and_sync_byte
     pop de
-    ret c  ; failure
+    pop bc
+    ret nc  ; failure
     or a
-    ret z
-    ; We did not read the proper synchronization byte, so, we will try again:
-    ; But if player presses ESC, we cancel:
-    call update_keyboard_buffers
-    ld a, (keyboard_line_clicks + 5)
-    bit 2, a
-    jr z, paketcas_read_find_sync_byte
     scf
-    ret
+    ret z
+    djnz paketcas_read_find_sync_byte
+    or a  ; nc: failure
+    ret 
 
 
 ; ------------------------------------------------
@@ -180,9 +178,15 @@ paketcas_read_find_sync_byte:
 ;             was no bit read error, so we might want to keep reading the pilot tone again.
 paketcas_read_pilot_tone_and_sync_byte:
     ; Wait for the first pulse:
-    ld l, #55
+    ld de, PAKETCAS_PILOT_SIGNAL_WAIT  ; amount of wait allowed (10-20 seconds)
+paketcas_read_pilot_tone_and_sync_byte_loop:
+    dec de
+    ld a, e
+    or d
+    ret z  ; timeout (nc)
+    ld l, #aa
     call wait_for_tape_bit_change
-    ret nc
+    jr nc, paketcas_read_pilot_tone_and_sync_byte_loop
     ; Read 256 bits of the pilot tone, and accumulate the period in "de":
     ld de, 0
     ld h, d
@@ -546,7 +550,7 @@ paketcas_restore_motor:
         in c, (c)  ; 8255 PIO Port C
         inc b  ; b = #f7
         and #10  ; keep the "motor on" bit
-        ld a, 8
+        ld a, 8  ; select bit 4
         jr z, paketcas_restore_motor_continue
         ; motor was on in the previous state
         inc a
